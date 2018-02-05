@@ -8,5 +8,5 @@
 下面按钮是扫描二维码后，得到ID，根据ID从本地获取数据，（通过realm在本地建立数据库），
 在下面的按钮是增加ID号到本地数据库中，
 在对话框中可以判断飞控数据是否激活，根据激活状态显示和修改ID所对应的数据
-！[dialog]（https://github.com/IsMaQian/ScanQRcode/raw/master/picture/dialog.jpg）
-！[修改界面]（https://github.com/IsMaQian/ScanQRcode/raw/master/picture/update.jpg）
+![dialog]（https://github.com/IsMaQian/ScanQRcode/raw/master/picture/dialog.jpg）
+![修改界面]（https://github.com/IsMaQian/ScanQRcode/raw/master/picture/update.jpg）
