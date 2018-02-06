@@ -15,8 +15,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.acker.simplezxing.activity.CaptureActivity;
+import com.example.mqtest.scanqrcode.Dao.UserGreenDao;
 import com.example.mqtest.scanqrcode.Dao.UserRealmDao;
 import com.example.mqtest.scanqrcode.Data.DroneDate;
+import com.example.mqtest.scanqrcode.Data.DroneMsgBean;
 import com.example.mqtest.scanqrcode.Data.ToastShow;
 import com.example.mqtest.scanqrcode.Http.HttpUtil;
 import com.example.mqtest.scanqrcode.View.CustomDialog;
@@ -56,6 +58,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     CustomDialog.Builder builder;
 
+    UserGreenDao userGreenDao;
     UserRealmDao userRealmDao;
     CustomDialog dialog;
     @BindView(R.id.scan_sd)
@@ -66,14 +69,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button addDate;
     @BindView(R.id.editID)
     EditText editID;
+    @BindView(R.id.deleteByID)
+    Button deleteByID;
+    @BindView(R.id.deleteAll)
+    Button deleteAll;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+        //初始化Realm
         realm = Realm.getDefaultInstance();
         userRealmDao = new UserRealmDao(realm);
+
+        userGreenDao = new UserGreenDao();
 
         builder = new CustomDialog.Builder(MainActivity.this);
         scan.setOnClickListener(this);
@@ -81,6 +91,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         scanSd.setOnClickListener(this);
 
         addDate.setOnClickListener(this);
+        deleteByID.setOnClickListener(this);
+        deleteAll.setOnClickListener(this);
 
     }
 
@@ -108,15 +120,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 break;
             case R.id.add_date:
+            case R.id.deleteByID:
+                boolean IssuccessInsertOrDelete = false;
                 String aydroneId = editID.getText().toString();
                 if (aydroneId.equals("")) {
                     ToastShow.show("飞控编号不能为空");
                 } else {
-                    //addDate(aydroneId);
-                    userRealmDao.addDate(aydroneId);
-                    editID.setText("");
+                    if (v.getId() == R.id.add_date) {
+                        // userRealmDao.addDate(aydroneId);//Realm
+                        IssuccessInsertOrDelete = userGreenDao.addDateToSQL(aydroneId);//GreenDao
+                    } else {
+                        IssuccessInsertOrDelete = userGreenDao.DeleteSQLByID(aydroneId);
+                    }
+                    if (IssuccessInsertOrDelete) {
+                        editID.setText("");
+                    }
                 }
-
+                break;
+            case R.id.deleteAll:
+//                userRealmDao.deleteAllDate();
+                userGreenDao.DeleteSQLAll();
+                editID.setText("");
                 break;
         }
     }
@@ -149,13 +173,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         if (IsScan2Http) {
                             mSendOkHttpPost(selecturl, scanData);
                         } else {
-                            //queryDraoneById(scanData);
-                            DroneDate droneDate = userRealmDao.queryDraoneById(scanData);
-                            if (droneDate != null) {
+//                            DroneDate droneDate = userRealmDao.queryDraoneById(scanData);
+                            /*if (droneDate != null) {
                                 getDatebyRealm(droneDate);
                             } else {
                                 ToastShow.show("没有此飞控编号");
+                            }*/
+                            DroneMsgBean msgBean = userGreenDao.querySQL(scanData);
+
+                            if (msgBean != null) {
+                                getDatebyRealm(msgBean);
+
+                            } else {
+                                ToastShow.show("没有此飞控编号");
                             }
+
                         }
                         //mSendOkHttpGet();
                         break;
@@ -172,12 +204,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     //显示查询到的数据
     private void getDatebyRealm(DroneDate droneDate) {
-            mdroneID = droneDate.getDrone_id();
-            mactivationState = droneDate.getDrone_activation();
-            mdroneColor = droneDate.getDrone_color();
-            mdroneWeight = droneDate.getDrone_weight();
-            IsChangeButtonText();
-            showDialog();
+        mdroneID = droneDate.getDrone_id();
+        mactivationState = droneDate.getDrone_activation();
+        mdroneColor = droneDate.getDrone_color();
+        mdroneWeight = droneDate.getDrone_weight();
+        IsChangeButtonText();
+        showDialog();
+    }
+
+    private void getDatebyRealm(DroneMsgBean droneDate) {
+        mdroneID = droneDate.getDrone_id();
+        mactivationState = droneDate.getDrone_activation();
+        mdroneColor = droneDate.getDrone_color();
+        mdroneWeight = droneDate.getDrone_weight();
+        IsChangeButtonText();
+        showDialog();
     }
 
 
@@ -189,6 +230,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             ButtonText = "激活";
         }
     }
+
     //对话框显示
     private void showDialog() {
         dialog = builder
@@ -222,8 +264,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     if (IsScan2Http) {
                         mSendOkHttpPost(updateurl, mdroneID, mdroneColor, mdroneWeight);
                     } else {
-//                        updateDroneDate();
-                        userRealmDao.updateDroneDate(mdroneID, mdroneColor, mdroneWeight);
+//                        userRealmDao.updateDroneDate(mdroneID, mdroneColor, mdroneWeight);
+                        userGreenDao.updateSQL(mdroneID, mdroneColor, mdroneWeight);
                         dialog.dismiss();
                         //Toast.makeText(MainActivity.this, ButtonText + "成功", Toast.LENGTH_SHORT).show();
                         ToastShow.show(ButtonText + "成功");
@@ -277,11 +319,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     public void run() {
                         if (responseDate.equals("1")) {
                             dialog.dismiss();
-                           // Toast.makeText(MainActivity.this, ButtonText + "成功", Toast.LENGTH_SHORT).show();
+                            // Toast.makeText(MainActivity.this, ButtonText + "成功", Toast.LENGTH_SHORT).show();
                             ToastShow.show(ButtonText + "成功");
 
                         } else if (responseDate.equals("0")) {
-                          //  Toast.makeText(MainActivity.this, ButtonText + "失败", Toast.LENGTH_SHORT).show();
+                            //  Toast.makeText(MainActivity.this, ButtonText + "失败", Toast.LENGTH_SHORT).show();
                             ToastShow.show(ButtonText + "失败");
 
                         }

@@ -88,12 +88,19 @@ public class UserRealmDao {
     //删除Realm的数据
     public void deleteAllDate() {
         final RealmResults<DroneDate> droneDates = realm.where(DroneDate.class).findAll();
-        realm.executeTransaction(new Realm.Transaction() {
-            @Override
-            public void execute(Realm realm) {
-                droneDates.deleteAllFromRealm();
-            }
-        });
+        try {
+            realm.executeTransaction(new Realm.Transaction() {
+                @Override
+                public void execute(Realm realm) {
+                    droneDates.deleteAllFromRealm();
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+            ToastShow.show("删除失败");
+        }
+        ToastShow.show("删除成功");
+
     }
 
 }
